@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora CO2 — Monitoreo y Observabilidad</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-2: #f1f5f9;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --text-1: #0f172a;
+      --text-2: #475569;
+      --text-3: #94a3b8;
+      --accent: #10b981;
+      --accent-dark: #059669;
+      --accent-bg: #ecfdf5;
+      --accent-text: #065f46;
+      --danger: #ef4444;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── NAV ── */
+    .nav {
+      position: relative;
+      z-index: 100;
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text-1);
+      letter-spacing: -0.02em;
+    }
+
+    .nav-logo {
+      width: 30px; height: 30px;
+      background: var(--text-1);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .nav-link {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-2);
+      text-decoration: none;
+      padding: 5px 10px;
+      border-radius: 6px;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+    }
+
+    .nav-link:hover {
+      background: var(--surface-2);
+      color: var(--text-1);
+      border-color: var(--border);
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-2);
+      padding: 4px 10px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--text-3);
+      transition: background 0.3s ease;
+    }
+
+    .status-dot.online {
+      background: var(--accent);
+      animation: pulse-dot 2s infinite;
+    }
+
+    .status-dot.offline { background: var(--danger); }
+
+    @keyframes pulse-dot {
+      0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+      70%  { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+      100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .main {
+      display: grid;
+      grid-template-columns: 200px 1fr 400px;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 1.25rem 0.75rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .sidebar-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--text-3);
+      padding: 0.6rem 0.75rem 0.3rem;
+      margin-top: 0.25rem;
+    }
+
+    .sidebar-label:first-child { margin-top: 0; }
+
+    .sidebar-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0.5rem 0.5rem;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 0.845rem;
+      font-weight: 500;
+      color: var(--text-2);
+      cursor: pointer;
+      transition: all 0.12s ease;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+
+    .nav-item:hover { background: var(--surface-2); color: var(--text-1); }
+
+    .nav-item.active {
+      background: var(--accent-bg);
+      color: var(--accent-text);
+      font-weight: 600;
+    }
+
+    /* ── CALCULATOR PANEL ── */
+    .calc-panel {
+      padding: 1.75rem 2rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-header { margin-bottom: 1.75rem; }
+
+    .panel-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text-1);
+      line-height: 1.2;
+    }
+
+    .panel-subtitle {
+      font-size: 0.855rem;
+      color: var(--text-2);
+      margin-top: 0.35rem;
+      line-height: 1.5;
+      max-width: 52ch;
+    }
+
+    /* ── FORM ── */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 1.1rem;
+    }
+
+    label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-1);
+      letter-spacing: -0.01em;
+    }
+
+    .helper-text {
+      font-size: 0.72rem;
+      color: var(--text-3);
+    }
+
+    input[type="number"],
+    select {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 400;
+      color: var(--text-1);
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 9px 13px;
+      width: 100%;
+      transition: all 0.15s ease;
+      appearance: none;
+      outline: none;
+    }
+
+    input[type="number"]:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 34px;
+      cursor: pointer;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    /* ── BUTTON ── */
+    .btn-primary {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: white;
+      background: var(--text-1);
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 11px 22px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      width: 100%;
+      margin-top: 0.25rem;
+      letter-spacing: -0.01em;
+    }
+
+    .btn-primary:hover {
+      background: #1e293b;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(15,23,42,0.2);
+    }
+
+    .btn-primary:active { transform: translateY(0) scale(0.98); }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* ── FACTORES ── */
+    .factores-grid { display: flex; flex-direction: column; gap: 1.5rem; }
+
+    .factores-section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-3);
+      margin-bottom: 0.6rem;
+    }
+
+    .factores-table {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .factores-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.845rem;
+    }
+
+    .factores-row:last-child { border-bottom: none; }
+    .factores-row:nth-child(even) { background: var(--surface-2); }
+
+    .factores-key { font-weight: 500; text-transform: capitalize; color: var(--text-1); }
+
+    .factores-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--accent-dark);
+      font-weight: 500;
+    }
+
+    /* ── RESULTS PANEL ── */
+    .result-panel {
+      background: #0f172a;
+      border-left: 1px solid rgba(255,255,255,0.05);
+      padding: 1.5rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .result-panel-header {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.25);
+      margin-bottom: 1.25rem;
+    }
+
+    /* Empty state */
+    .result-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .result-empty-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+
+    .result-empty strong {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 3px;
+    }
+
+    .result-empty p {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.25);
+      line-height: 1.55;
+      max-width: 200px;
+    }
+
+    /* Loading skeleton */
+    .skeleton {
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .skeleton::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+      animation: shimmer 1.4s infinite;
+    }
+
+    @keyframes shimmer {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    /* Result card */
+    .result-card {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      animation: fadeUp 0.25s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-main {
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .result-label {
+      font-size: 0.67rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 0.5rem;
+    }
+
+    .result-co2-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 2.8rem;
+      font-weight: 500;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      color: white;
+    }
+
+    .result-co2-unit {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.35);
+      margin-top: 5px;
+    }
+
+    .result-level-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 11px;
+      border-radius: 100px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      margin-top: 0.65rem;
+    }
+
+    .level-bajo     { background: rgba(16,185,129,0.14); color: #34d399; }
+    .level-medio    { background: rgba(245,158,11,0.14); color: #fbbf24; }
+    .level-alto     { background: rgba(249,115,22,0.14); color: #fb923c; }
+    .level-critico  { background: rgba(239,68,68,0.14);  color: #f87171; }
+    .level-default  { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.4); }
+
+    /* Level bar */
+    .level-bar-wrapper {
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: var(--radius);
+      padding: 1.1rem;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .level-bar-track {
+      height: 5px;
+      border-radius: 100px;
+      background: linear-gradient(to right,
+        #10b981 0%, #10b981 16.67%,
+        #f59e0b 16.67%, #f59e0b 50%,
+        #f97316 50%, #f97316 83.33%,
+        #ef4444 83.33%
+      );
+      position: relative;
+      margin: 0.75rem 0;
+    }
+
+    .level-bar-marker {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 13px; height: 13px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.2);
+      transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .level-bar-labels {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.25);
+      line-height: 1.4;
+    }
+
+    .level-bar-labels span:last-child { text-align: right; }
+    .level-bar-labels span:nth-child(2),
+    .level-bar-labels span:nth-child(3) { text-align: center; }
+
+    /* Data rows */
+    .result-data-section {
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .result-data-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 13px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .result-data-row:last-child { border-bottom: none; }
+
+    .result-data-key {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .result-data-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.82);
+      font-weight: 500;
+    }
+
+    /* Trees widget */
+    .trees-widget {
+      border: 1px solid rgba(16,185,129,0.18);
+      border-radius: var(--radius);
+      padding: 1.1rem;
+      background: rgba(16,185,129,0.04);
+    }
+
+    .trees-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.6rem;
+      font-weight: 500;
+      color: #34d399;
+      letter-spacing: -0.03em;
+    }
+
+    .trees-label {
+      font-size: 0.74rem;
+      color: rgba(255,255,255,0.3);
+      margin-top: 2px;
+    }
+
+    /* Recomendaciones */
+    .recomendacion-item {
+      padding: 9px 12px;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.55;
+      margin-bottom: 6px;
+    }
+
+    /* Error */
+    .result-error {
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: var(--radius);
+      padding: 1.1rem;
+      background: rgba(239,68,68,0.05);
+    }
+
+    .result-error-title {
+      font-size: 0.83rem;
+      font-weight: 600;
+      color: #f87171;
+      margin-bottom: 4px;
+    }
+
+    .result-error-msg {
+      font-size: 0.77rem;
+      color: rgba(239,68,68,0.55);
+      line-height: 1.5;
+    }
+
+    /* Breakdown bar */
+    .breakdown-bar {
+      display: flex;
+      height: 7px;
+      border-radius: 100px;
+      overflow: hidden;
+      gap: 2px;
+      margin: 0.65rem 0;
+    }
+
+    .breakdown-segment { height: 100%; }
+
+    /* ── TABS ── */
+    .form-tab { display: none; }
+    .form-tab.active { display: block; }
+
+    .hidden { display: none !important; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 960px) {
+      body { overflow: auto; height: auto; }
+      .main { grid-template-columns: 1fr; height: auto; overflow: visible; }
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: 0.5rem;
+        overflow-x: auto;
+      }
+      .sidebar-label, .sidebar-divider { display: none; }
+      .result-panel { border-left: none; border-top: 1px solid rgba(255,255,255,0.05); min-height: 440px; }
+      .calc-panel { overflow: visible; }
+      .nav-links { display: none; }
+    }
+
+    @media (max-width: 480px) {
+      .nav { padding: 0 1rem; }
+      .calc-panel { padding: 1.25rem; }
+      .result-panel { padding: 1.25rem; }
+      .form-row { grid-template-columns: 1fr; }
+      .result-co2-value { font-size: 2.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="nav">
+    <div class="nav-brand">
+      <div class="nav-logo">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/>
+          <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+        </svg>
+      </div>
+      API Huella de Carbono
+    </div>
+
+    <div class="nav-links">
+      <a href="http://localhost:3000/docs" target="_blank" class="nav-link">API Docs</a>
+      <a href="http://localhost:9090" target="_blank" class="nav-link">Prometheus</a>
+      <a href="http://localhost:3001" target="_blank" class="nav-link">Grafana</a>
+      <a href="http://localhost:3000/metrics" target="_blank" class="nav-link">Metrics</a>
+    </div>
+
+    <div class="status-badge">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">Conectando...</span>
+    </div>
+  </nav>
+
+  <!-- MAIN LAYOUT -->
+  <div class="main">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-label">Calculadoras</div>
+
+      <button class="nav-item active" onclick="switchTab('transporte', this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+          <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+        </svg>
+        Transporte
+      </button>
+
+      <button class="nav-item" onclick="switchTab('energia', this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+        Energia
+      </button>
+
+      <button class="nav-item" onclick="switchTab('dieta', this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+          <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+        </svg>
+        Dieta
+      </button>
+
+      <button class="nav-item" onclick="switchTab('reporte', this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        Reporte Anual
+      </button>
+
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-label">Referencia</div>
+
+      <button class="nav-item" onclick="switchTab('factores', this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        Factores de emision
+      </button>
+    </aside>
+
+    <!-- CALCULATOR PANEL -->
+    <main class="calc-panel">
+
+      <!-- TRANSPORTE -->
+      <div id="tab-transporte" class="form-tab active">
+        <div class="panel-header">
+          <div class="panel-title">Calculo por transporte</div>
+          <div class="panel-subtitle">Estima el CO2 emitido segun los kilometros recorridos y el tipo de vehiculo.</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="t-km">Kilometros recorridos</label>
+            <input type="number" id="t-km" placeholder="Ej: 150" min="0" step="0.1">
+            <div class="helper-text">Distancia total del trayecto</div>
+          </div>
+          <div class="form-group">
+            <label for="t-tipo">Tipo de vehiculo</label>
+            <select id="t-tipo">
+              <option value="auto">Automovil — 0.21 kg/km</option>
+              <option value="moto">Motocicleta — 0.11 kg/km</option>
+              <option value="bus">Bus / transporte publico — 0.04 kg/km</option>
+              <option value="avion">Avion — 0.255 kg/km</option>
+              <option value="tren">Tren — 0.014 kg/km</option>
+              <option value="bicicleta">Bicicleta — 0 kg/km</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="calcTransporte()">Calcular emision</button>
+      </div>
+
+      <!-- ENERGIA -->
+      <div id="tab-energia" class="form-tab">
+        <div class="panel-header">
+          <div class="panel-title">Calculo por energia</div>
+          <div class="panel-subtitle">Estima el CO2 mensual y anual segun el consumo electrico. El factor de emision varia por pais.</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="e-kwh">Consumo mensual (kWh)</label>
+            <input type="number" id="e-kwh" placeholder="Ej: 350" min="0" step="0.1">
+            <div class="helper-text">Revisa tu factura de energia electrica</div>
+          </div>
+          <div class="form-group">
+            <label for="e-pais">Pais</label>
+            <select id="e-pais">
+              <option value="colombia">Colombia — 0.126 kg/kWh</option>
+              <option value="argentina">Argentina — 0.310 kg/kWh</option>
+              <option value="chile">Chile — 0.290 kg/kWh</option>
+              <option value="mexico">Mexico — 0.454 kg/kWh</option>
+              <option value="españa">España — 0.181 kg/kWh</option>
+              <option value="mundial">Factor mundial — 0.475 kg/kWh</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="calcEnergia()">Calcular emision</button>
+      </div>
+
+      <!-- DIETA -->
+      <div id="tab-dieta" class="form-tab">
+        <div class="panel-header">
+          <div class="panel-title">Calculo por dieta</div>
+          <div class="panel-subtitle">La alimentacion es uno de los factores con mayor impacto ambiental. Estima el CO2 anual por tipo de dieta.</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="d-tipo">Tipo de dieta</label>
+            <select id="d-tipo">
+              <option value="vegana">Vegana — 1.5 t/año</option>
+              <option value="vegetariana">Vegetariana — 1.7 t/año</option>
+              <option value="omnivora" selected>Omnivora — 2.5 t/año</option>
+              <option value="carnivora">Carnivora — 3.3 t/año</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="d-personas">Numero de personas</label>
+            <input type="number" id="d-personas" value="1" min="1" max="20">
+            <div class="helper-text">Personas en el hogar</div>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="calcDieta()">Calcular emision</button>
+      </div>
+
+      <!-- REPORTE -->
+      <div id="tab-reporte" class="form-tab">
+        <div class="panel-header">
+          <div class="panel-title">Reporte anual consolidado</div>
+          <div class="panel-subtitle">Combina transporte, energia y dieta para calcular tu huella de carbono total. Tarda 2-3 segundos (calculo pesado).</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="r-km">Km diarios (transporte)</label>
+            <input type="number" id="r-km" placeholder="Ej: 20" min="0" step="0.1">
+          </div>
+          <div class="form-group">
+            <label for="r-vehiculo">Vehiculo</label>
+            <select id="r-vehiculo">
+              <option value="auto">Automovil</option>
+              <option value="moto">Motocicleta</option>
+              <option value="bus">Bus</option>
+              <option value="avion">Avion</option>
+              <option value="tren">Tren</option>
+              <option value="bicicleta">Bicicleta</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="r-kwh">kWh mensuales (energia)</label>
+            <input type="number" id="r-kwh" placeholder="Ej: 350" min="0" step="0.1">
+          </div>
+          <div class="form-group">
+            <label for="r-dieta">Tipo de dieta</label>
+            <select id="r-dieta">
+              <option value="vegana">Vegana</option>
+              <option value="vegetariana">Vegetariana</option>
+              <option value="omnivora" selected>Omnivora</option>
+              <option value="carnivora">Carnivora</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="r-personas">Personas en el hogar</label>
+          <input type="number" id="r-personas" value="1" min="1" max="20">
+        </div>
+        <button class="btn-primary" id="btn-reporte" onclick="calcReporte()">Generar reporte anual</button>
+      </div>
+
+      <!-- FACTORES -->
+      <div id="tab-factores" class="form-tab">
+        <div class="panel-header">
+          <div class="panel-title">Factores de emision</div>
+          <div class="panel-subtitle">Valores de referencia usados en los calculos. Fuente: IPCC 2023 y UPME Colombia.</div>
+        </div>
+        <div class="factores-grid" id="factores-content">
+          <div style="color:var(--text-3);font-size:0.85rem">Cargando factores desde la API...</div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- RESULTS PANEL -->
+    <aside class="result-panel">
+      <div class="result-panel-header">Resultado</div>
+
+      <!-- Empty -->
+      <div class="result-empty" id="result-empty">
+        <div class="result-empty-icon">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/>
+            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+          </svg>
+        </div>
+        <div>
+          <strong>Sin calculos aun</strong>
+          <p>Completa el formulario y presiona Calcular para ver el resultado aqui.</p>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div id="result-loading" class="hidden" style="display:flex;flex-direction:column;gap:0.75rem">
+        <div class="skeleton" style="height:110px;border-radius:12px"></div>
+        <div class="skeleton" style="height:70px;border-radius:12px"></div>
+        <div class="skeleton" style="height:88px;border-radius:12px"></div>
+        <div class="skeleton" style="height:80px;border-radius:12px"></div>
+      </div>
+
+      <!-- Content -->
+      <div id="result-content" class="hidden result-card"></div>
+    </aside>
+
+  </div>
+
+  <script>
+    const API = 'http://localhost:3000';
+
+    // ── CONNECTION STATUS ────────────────────────
+    async function checkStatus() {
+      const dot = document.getElementById('status-dot');
+      const txt = document.getElementById('status-text');
+      try {
+        const r = await fetch(`${API}/`, { signal: AbortSignal.timeout(3000) });
+        if (r.ok) {
+          dot.className = 'status-dot online';
+          txt.textContent = 'API activa';
+        } else {
+          dot.className = 'status-dot offline';
+          txt.textContent = 'Error ' + r.status;
+        }
+      } catch {
+        dot.className = 'status-dot offline';
+        txt.textContent = 'Sin conexion';
+      }
+    }
+
+    checkStatus();
+    setInterval(checkStatus, 10000);
+
+    // ── TAB NAVIGATION ───────────────────────────
+    function switchTab(tab, btn) {
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.form-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      if (tab === 'factores') loadFactores();
+    }
+
+    // ── STATE HELPERS ────────────────────────────
+    function showLoading() {
+      document.getElementById('result-empty').classList.add('hidden');
+      document.getElementById('result-loading').classList.remove('hidden');
+      document.getElementById('result-content').classList.add('hidden');
+    }
+
+    function showResult(html) {
+      document.getElementById('result-empty').classList.add('hidden');
+      document.getElementById('result-loading').classList.add('hidden');
+      const el = document.getElementById('result-content');
+      el.classList.remove('hidden');
+      el.innerHTML = html;
+    }
+
+    function showError(msg) {
+      showResult(`
+        <div class="result-error">
+          <div class="result-error-title">Error al calcular</div>
+          <div class="result-error-msg">${msg}</div>
+        </div>
+        <div style="font-size:0.72rem;color:rgba(255,255,255,0.2);margin-top:0.5rem">
+          Verifica que docker-compose este corriendo: <code style="font-family:'JetBrains Mono',monospace">docker-compose up -d</code>
+        </div>
+      `);
+    }
+
+    // ── DISPLAY HELPERS ──────────────────────────
+    function cleanText(str) {
+      return str ? str.replace(/[\u{1F300}-\u{1FFFF}]|[\u{2600}-\u{27FF}]|️|[✀-➿]/gu, '').trim() : '';
+    }
+
+    function getLevelClass(nivel) {
+      if (!nivel) return 'level-default';
+      const n = nivel.toLowerCase();
+      if (n.includes('bajo')) return 'level-bajo';
+      if (n.includes('medio')) return 'level-medio';
+      if (n.includes('alto') && !n.includes('cr')) return 'level-alto';
+      if (n.includes('cr')) return 'level-critico';
+      return 'level-default';
+    }
+
+    function renderLevelBar(kg) {
+      const MAX = 4000;
+      const pct = Math.min((kg / MAX) * 100, 100).toFixed(1);
+      return `
+        <div class="level-bar-wrapper">
+          <div class="result-label">Posicion en la escala</div>
+          <div class="level-bar-track">
+            <div class="level-bar-marker" style="left:${pct}%"></div>
+          </div>
+          <div class="level-bar-labels">
+            <span>Bajo<br><span style="color:rgba(255,255,255,0.15)">0–500 kg</span></span>
+            <span>Medio<br><span style="color:rgba(255,255,255,0.15)">500–1500</span></span>
+            <span>Alto<br><span style="color:rgba(255,255,255,0.15)">1500–3000</span></span>
+            <span>Critico<br><span style="color:rgba(255,255,255,0.15)">3000+</span></span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTrees(trees) {
+      return `
+        <div class="trees-widget">
+          <div class="result-label">Arboles para compensar</div>
+          <div class="trees-count">${Number(trees).toLocaleString('es-CO')}</div>
+          <div class="trees-label">arboles durante un año absorben esta cantidad de CO2</div>
+        </div>
+      `;
+    }
+
+    function renderDataRows(pairs) {
+      const rows = pairs.map(([k, v]) =>
+        `<div class="result-data-row">
+          <span class="result-data-key">${k}</span>
+          <span class="result-data-val">${v}</span>
+        </div>`
+      ).join('');
+      return `<div class="result-data-section">${rows}</div>`;
+    }
+
+    // ── TRANSPORTE ───────────────────────────────
+    async function calcTransporte() {
+      const km = parseFloat(document.getElementById('t-km').value);
+      const tipo = document.getElementById('t-tipo').value;
+      if (!km || km <= 0) { showError('Ingresa un valor valido de kilometros.'); return; }
+
+      showLoading();
+      try {
+        const r = await fetch(`${API}/calcular/transporte`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ km, tipo_vehiculo: tipo })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || 'Error de la API');
+
+        showResult(`
+          <div class="result-main">
+            <div class="result-label">CO2 emitido — Transporte</div>
+            <div class="result-co2-value">${data.kg_co2_emitidos.toLocaleString('es-CO', {minimumFractionDigits:1,maximumFractionDigits:1})}</div>
+            <div class="result-co2-unit">kg de CO2</div>
+          </div>
+          ${renderLevelBar(data.kg_co2_emitidos)}
+          ${renderDataRows([
+            ['Vehiculo', data.vehiculo],
+            ['Distancia', data.km + ' km'],
+            ['Factor de emision', data.factor_emision_kg_por_km + ' kg/km'],
+          ])}
+          ${renderTrees(data.equivalente_arboles_para_compensar)}
+        `);
+      } catch(e) { showError(e.message); }
+    }
+
+    // ── ENERGIA ──────────────────────────────────
+    async function calcEnergia() {
+      const kwh = parseFloat(document.getElementById('e-kwh').value);
+      const pais = document.getElementById('e-pais').value;
+      if (!kwh || kwh <= 0) { showError('Ingresa un valor valido de kWh.'); return; }
+
+      showLoading();
+      try {
+        const r = await fetch(`${API}/calcular/energia`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kwh_mes: kwh, pais })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || 'Error de la API');
+
+        showResult(`
+          <div class="result-main">
+            <div class="result-label">CO2 emitido — Energia electrica</div>
+            <div class="result-co2-value">${data.kg_co2_anio.toLocaleString('es-CO', {minimumFractionDigits:1,maximumFractionDigits:1})}</div>
+            <div class="result-co2-unit">kg de CO2 / año</div>
+          </div>
+          ${renderLevelBar(data.kg_co2_anio)}
+          ${renderDataRows([
+            ['Pais', data.pais],
+            ['Consumo mensual', data.kwh_mes + ' kWh'],
+            ['Factor de emision', data.factor_emision_kg_por_kwh + ' kg/kWh'],
+            ['CO2 mensual', data.kg_co2_mes + ' kg'],
+          ])}
+          ${renderTrees(data.equivalente_arboles_para_compensar)}
+        `);
+      } catch(e) { showError(e.message); }
+    }
+
+    // ── DIETA ────────────────────────────────────
+    async function calcDieta() {
+      const tipo = document.getElementById('d-tipo').value;
+      const personas = parseInt(document.getElementById('d-personas').value) || 1;
+
+      showLoading();
+      try {
+        const r = await fetch(`${API}/calcular/dieta`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tipo_dieta: tipo, personas })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || 'Error de la API');
+
+        const comp = data.comparacion;
+        const dietas = ['vegana', 'vegetariana', 'omnivora', 'carnivora'];
+        const compRows = dietas.map(d => {
+          const val = (comp[d] * 1000).toFixed(0);
+          const isCurrent = d === tipo;
+          return `<div class="result-data-row">
+            <span class="result-data-key">${d.charAt(0).toUpperCase() + d.slice(1)}${isCurrent ? ' <span style="color:rgba(52,211,153,0.5);font-size:0.68rem">(actual)</span>' : ''}</span>
+            <span class="result-data-val" style="${isCurrent ? 'color:#34d399' : ''}">${Number(val).toLocaleString('es-CO')} kg/año</span>
+          </div>`;
+        }).join('');
+
+        showResult(`
+          <div class="result-main">
+            <div class="result-label">CO2 emitido — Dieta (${personas} persona${personas > 1 ? 's' : ''})</div>
+            <div class="result-co2-value">${data.kg_co2_anio.toLocaleString('es-CO')}</div>
+            <div class="result-co2-unit">kg de CO2 / año</div>
+          </div>
+          ${renderLevelBar(data.kg_co2_anio)}
+          <div>
+            <div class="result-label" style="margin-bottom:0.4rem">Comparacion entre dietas</div>
+            <div class="result-data-section">${compRows}</div>
+          </div>
+          ${renderTrees(Math.round(data.kg_co2_anio / 21.77))}
+        `);
+      } catch(e) { showError(e.message); }
+    }
+
+    // ── REPORTE ANUAL ────────────────────────────
+    async function calcReporte() {
+      const km = parseFloat(document.getElementById('r-km').value);
+      const vehiculo = document.getElementById('r-vehiculo').value;
+      const kwh = parseFloat(document.getElementById('r-kwh').value);
+      const dieta = document.getElementById('r-dieta').value;
+      const personas = parseInt(document.getElementById('r-personas').value) || 1;
+
+      if (!km || km <= 0 || !kwh || kwh <= 0) {
+        showError('Ingresa valores validos para km diarios y kWh mensuales.');
+        return;
+      }
+
+      const btn = document.getElementById('btn-reporte');
+      btn.disabled = true;
+      btn.textContent = 'Calculando (2-3 segundos)...';
+      showLoading();
+
+      try {
+        const r = await fetch(`${API}/reporte/anual`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ km_transporte: km, tipo_vehiculo: vehiculo, kwh_mes: kwh, tipo_dieta: dieta, personas })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || 'Error de la API');
+
+        const dsg = data.desglose_kg_co2;
+        const total = data.total_kg_co2_anio;
+        const pT = total > 0 ? Math.round(dsg.transporte / total * 100) : 0;
+        const pE = total > 0 ? Math.round(dsg.energia / total * 100) : 0;
+        const pD = total > 0 ? Math.round(dsg.dieta / total * 100) : 0;
+
+        const nivelClean = cleanText(data.clasificacion);
+        const lvlClass = getLevelClass(nivelClean);
+
+        const recsHtml = data.recomendaciones.map(rec =>
+          `<div class="recomendacion-item">${cleanText(rec)}</div>`
+        ).join('');
+
+        showResult(`
+          <div class="result-main">
+            <div class="result-label">Huella de carbono anual total</div>
+            <div class="result-co2-value">${total.toLocaleString('es-CO', {minimumFractionDigits:0})}</div>
+            <div class="result-co2-unit">kg de CO2 / año &nbsp;·&nbsp; ${data.total_toneladas_co2_anio} toneladas</div>
+            <div class="result-level-badge ${lvlClass}">${nivelClean}</div>
+          </div>
+
+          <div class="level-bar-wrapper">
+            <div class="result-label">Desglose por categoria</div>
+            <div class="breakdown-bar">
+              <div class="breakdown-segment" style="width:${pT}%;background:#60a5fa;border-radius:4px 0 0 4px"></div>
+              <div class="breakdown-segment" style="width:${pE}%;background:#a78bfa"></div>
+              <div class="breakdown-segment" style="width:${pD}%;background:#34d399;border-radius:0 4px 4px 0"></div>
+            </div>
+            ${renderDataRows([
+              ['<span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:#60a5fa;margin-right:6px;vertical-align:middle"></span>Transporte', dsg.transporte.toLocaleString('es-CO') + ' kg (' + pT + '%)'],
+              ['<span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:#a78bfa;margin-right:6px;vertical-align:middle"></span>Energia', dsg.energia.toLocaleString('es-CO') + ' kg (' + pE + '%)'],
+              ['<span style="display:inline-block;width:7px;height:7px;border-radius:2px;background:#34d399;margin-right:6px;vertical-align:middle"></span>Dieta', dsg.dieta.toLocaleString('es-CO') + ' kg (' + pD + '%)'],
+            ])}
+          </div>
+
+          ${renderLevelBar(total)}
+          ${renderTrees(data.arboles_para_compensar)}
+
+          <div>
+            <div class="result-label" style="margin-bottom:0.5rem">Recomendaciones</div>
+            ${recsHtml}
+          </div>
+        `);
+      } catch(e) {
+        showError(e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generar reporte anual';
+      }
+    }
+
+    // ── FACTORES ─────────────────────────────────
+    async function loadFactores() {
+      const el = document.getElementById('factores-content');
+      try {
+        const r = await fetch(`${API}/factores`);
+        const data = await r.json();
+
+        const renderTable = (title, obj, unit) => `
+          <div>
+            <div class="factores-section-title">${title}</div>
+            <div class="factores-table">
+              ${Object.entries(obj).map(([k, v]) => `
+                <div class="factores-row">
+                  <span class="factores-key">${k}</span>
+                  <span class="factores-val">${v} <span style="opacity:0.45;font-size:0.68em;font-family:sans-serif">${unit}</span></span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+
+        el.innerHTML = `
+          ${renderTable('Transporte — kg CO2 por km recorrido', data.transporte_kg_co2_por_km, 'kg/km')}
+          ${renderTable('Energia — kg CO2 por kWh consumido', data.energia_kg_co2_por_kwh, 'kg/kWh')}
+          ${renderTable('Dieta — toneladas CO2 por persona / año', data.dieta_toneladas_co2_por_anio, 't/año')}
+          <div style="font-size:0.72rem;color:var(--text-3);padding-top:0.25rem">Fuente: ${data.fuente}</div>
+        `;
+      } catch(e) {
+        el.innerHTML = `<div style="color:var(--danger);font-size:0.85rem">No se pudo cargar. Verifica que la API este corriendo.</div>`;
+      }
+    }
+  </script>
+</body>
+</html>

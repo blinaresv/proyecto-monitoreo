@@ -8,6 +8,8 @@ import random
 import psutil
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from prometheus_client import (
     Counter,
@@ -65,6 +67,15 @@ app = FastAPI(
     description="Calcula emisiones de CO₂ por transporte, energia y dieta",
     version="1.0.0",
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.mount("/app", StaticFiles(directory="frontend", html=True), name="frontend")
 
 
 # ─────────────────────────────────────────────
