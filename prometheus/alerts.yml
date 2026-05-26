@@ -1,0 +1,47 @@
+groups:
+  - name: co2_api_alerts
+    rules:
+
+      # Latencia promedio supera 1 segundo
+      - alert: AltaLatenciaAPI
+        expr: |
+          rate(http_request_duration_seconds_sum[2m])
+          / rate(http_request_duration_seconds_count[2m]) > 1.0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latencia alta en la API"
+          description: "{{ $labels.endpoint }} lleva 1 min con latencia promedio de {{ $value | printf \"%.2f\" }}s"
+
+      # Mas del 5% de los requests terminan en error 5xx
+      - alert: AltaTasaErrores
+        expr: |
+          rate(http_requests_total{status_code=~"5.."}[2m])
+          / rate(http_requests_total[2m]) > 0.05
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Errores 5xx por encima del 5%"
+          description: "Mas del 5% de los requests estan fallando con errores del servidor"
+
+      # Sin trafico por mas de 3 minutos
+      - alert: SinTraficoAPI
+        expr: rate(http_requests_total[3m]) == 0
+        for: 3m
+        labels:
+          severity: info
+        annotations:
+          summary: "La API no recibe requests"
+          description: "Sin actividad registrada en los ultimos 3 minutos"
+
+      # CPU por encima del 80%
+      - alert: AltoCPU
+        expr: system_cpu_usage_percent > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU al {{ $value }}%"
+          description: "El sistema lleva 2 min con uso de CPU superior al 80%"

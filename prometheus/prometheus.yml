@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Reglas de alerta
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  # Scraping de la API de Huella de Carbono
+  - job_name: 'co2-api'
+    static_configs:
+      - targets: ['api:3000']
+    metrics_path: '/metrics'
+
+  # Auto-monitoreo de Prometheus
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
